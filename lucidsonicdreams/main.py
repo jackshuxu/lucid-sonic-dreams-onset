@@ -147,6 +147,8 @@ class LucidSonicDream:
     pulse_harmonic = self.pulse_harmonic
     motion_percussive = self.motion_percussive
     motion_harmonic = self.motion_harmonic
+    use_onset = self.use_onset
+    
 
     # Load audio signal data
     wav, sr = librosa.load(self.song, offset=start, duration=duration)
@@ -184,12 +186,21 @@ class LucidSonicDream:
     # Calculate frame duration (i.e. samples per frame)
     frame_duration = int(sr/fps - (sr/fps % 64))
 
-    # Generate normalized spectrograms for Pulse, Motion and Class
-    self.spec_norm_pulse = get_spec_norm(wav_pulse, sr_pulse, 
+    if use_onset:
+      # Generate normalized onset strength for Pulse, Motion and Class
+      self.norm_pulse = get_spec_norm(wav_pulse, sr_pulse, 
                                          input_shape, frame_duration)
-    self.spec_norm_motion = get_spec_norm(wav_motion, sr_motion,
+      self.norm_motion = get_spec_norm(wav_motion, sr_motion,
                                           input_shape, frame_duration)
-    self.spec_norm_class= get_spec_norm(wav_class,sr_class, 
+      self.norm_class= get_spec_norm(wav_class,sr_class, 
+                                        input_shape, frame_duration)
+    else:
+      # Generate normalized spectrograms for Pulse, Motion and Class
+      self.norm_pulse = get_spec_norm(wav_pulse, sr_pulse, 
+                                         input_shape, frame_duration)
+      self.norm_motion = get_spec_norm(wav_motion, sr_motion,
+                                          input_shape, frame_duration)
+      self.norm_class= get_spec_norm(wav_class,sr_class, 
                                         input_shape, frame_duration)
 
     # Generate chromagram from Class audio
@@ -338,7 +349,7 @@ class LucidSonicDream:
                truncnorm.rvs(-2, 2, 
                              size = (self.batch_size, self.input_shape)) \
                         .astype(np.float32)[0]] * \
-              len(self.spec_norm_class)
+              len(self.norm_class)
 
     # Otherwise, initialize num_init_noise different vectors, and generate
     # linear interpolations between these vectors
@@ -352,12 +363,12 @@ class LucidSonicDream:
                     for i in range(num_init_noise)]
 
       # Compute number of steps between each pair of vectors
-      steps = int(np.floor(len(self.spec_norm_class))/len(init_noise)- 1)
+      steps = int(np.floor(len(self.norm_class))/len(init_noise)- 1)
 
       # Interpolate
       noise = full_frame_interpolation(init_noise, 
                                        steps,
-                                       len(self.spec_norm_class))
+                                       len(self.norm_class))
 
     # Initialize lists of Pulse, Motion, and Class vectors
     pulse_noise = []
@@ -378,7 +389,7 @@ class LucidSonicDream:
 
     
 
-    for i in range(len(self.spec_norm_class)):
+    for i in range(len(self.norm_class)):
 
       # UPDATE NOISE # 
 
@@ -388,8 +399,8 @@ class LucidSonicDream:
                              for n in range(self.input_shape)])
 
       # Generate incremental update vectors for Pulse and Motion
-      pulse_noise_add =  pulse_base * self.spec_norm_pulse[i]
-      motion_noise_add = motion_base * self.spec_norm_motion[i] * \
+      pulse_noise_add =  pulse_base * self.norm_pulse[i]
+      motion_noise_add = motion_base * self.norm_motion[i] * \
                          self.motion_signs * rand_factors
 
       # Smooth each update vector using a weighted average of
@@ -580,7 +591,9 @@ class LucidSonicDream:
                   contrast_percussive: bool = None,
                   flash_strength: float = None,
                   flash_percussive: bool = None,
-                  custom_effects: list = None):
+                  custom_effects: list = None,
+                  use_onset: bool = False
+                  ):
     '''Full pipeline of video generation'''
 
     # Raise exception if speed_fpm > fps*60
@@ -660,6 +673,7 @@ class LucidSonicDream:
       self.pulse_harmonic = pulse_harmonic
       self.motion_percussive = motion_percussive
       self.motion_harmonic = motion_harmonic
+      self.use_onset = use_onset
 
       print('Preparing audio...')
       self.load_specs()
