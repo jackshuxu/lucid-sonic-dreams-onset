@@ -77,6 +77,21 @@ def get_spec_norm(wav, sr, n_mels, hop_length):
 
   return spec_norm
 
+# Mod: Onset Detection
+def get_onset(wav, sr, n_mels, hop_length):
+  #bring out melody 
+  emph = librosa.effects.preemphasis(wav)
+  
+  #Generate cqt for spectral flux analysis 
+  C = np.abs(librosa.cqt(y=emph, sr=sr, hop_length=hop_length))
+
+  #Detect onset strength 
+  onset_env = librosa.onset.onset_strength(sr=sr, S=librosa.amplitude_to_db(C, ref=np.max))
+
+  #Normalize onset strength
+  onset_norm = onset_env / onset_env.max()
+
+  return onset_norm
 
 def interpolate(array_1: np.ndarray, array_2: np.ndarray, steps: int):
   '''Linear interpolation between 2 arrays'''
