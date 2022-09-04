@@ -188,11 +188,11 @@ class LucidSonicDream:
 
     if use_onset:
       # Generate normalized onset strength for Pulse, Motion and Class
-      self.norm_pulse = get_spec_norm(wav_pulse, sr_pulse, 
+      self.norm_pulse = get_onset(wav_pulse, sr_pulse, 
                                          input_shape, frame_duration)
-      self.norm_motion = get_spec_norm(wav_motion, sr_motion,
+      self.norm_motion = get_onset(wav_motion, sr_motion,
                                           input_shape, frame_duration)
-      self.norm_class= get_spec_norm(wav_class,sr_class, 
+      self.norm_class= get_onset(wav_class,sr_class, 
                                         input_shape, frame_duration)
     else:
       # Generate normalized spectrograms for Pulse, Motion and Class
